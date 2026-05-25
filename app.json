@@ -1,9 +1,21 @@
 {
   "expo": {
-    "name": "dango",
+    "name": "Dango",
     "slug": "dango",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "owner": "your-expo-username",
+    "extra": {
+      "eas": {
+        "projectId": "27ead3fc-6ca5-4cc7-a3ee-1c699f266078"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/27ead3fc-6ca5-4cc7-a3ee-1c699f266078"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "dango",
     "userInterfaceStyle": "automatic",
@@ -12,6 +24,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.dango.streaming",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -27,6 +41,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-screen-orientation",
       [
         "expo-splash-screen",
         {
