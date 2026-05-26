@@ -330,6 +330,16 @@ export default function ShortTVScreen() {
 
   return (
     <View style={styles.container}>
+
+      {/* ── Coming Soon overlay ── */}
+      <View style={styles.comingSoonOverlay}>
+        <View style={styles.comingSoonIcon}>
+          <Ionicons name="play-circle-outline" size={36} color={Colors.primary} />
+        </View>
+        <Text style={styles.comingSoonTitle}>Coming Soon</Text>
+        <Text style={styles.comingSoonSub}>ShortTV will be available in a future update.</Text>
+      </View>
+
       <FlatList<NormalizedReel>
         data={reels}
         key={activeTab}
@@ -584,5 +594,32 @@ const styles = StyleSheet.create({
     color: Colors.hint,
     textAlign: 'center',
     paddingHorizontal: Spacing.xl,
+  },
+
+  // Coming Soon
+  comingSoonOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xxl,
+    zIndex: 10,
+  },
+  comingSoonIcon: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  comingSoonTitle: {
+    ...TextStyles.headlineMedium,
+    color: Colors.primaryText,
+    textAlign: 'center',
+  },
+  comingSoonSub: {
+    ...TextStyles.bodyMedium,
+    color: Colors.secondaryText,
+    textAlign: 'center',
   },
 });

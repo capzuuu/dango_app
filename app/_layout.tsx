@@ -20,6 +20,7 @@ export default function RootLayout() {
         <Stack.Screen name="details" />
         <Stack.Screen name="player" />
         <Stack.Screen name="manga-reader" />
+        <Stack.Screen name="my-list-full" />
       </Stack>
       <StatusBar style="light" />
     </MyListProvider>

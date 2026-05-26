@@ -1,8 +1,12 @@
-- [ ] Update `context/continue-watching-context.tsx` to support manga progress (extend types + upsert/remove for manga)
-- [ ] Update `app/manga-reader.tsx` to:
-  - [ ] Accept `chapterId` + `resumeProgress` params and resume on load
-  - [ ] Persist manga progress to context while reading (throttle)
-- [ ] Update `app/(tabs)/index.tsx` home page manga “Continue reading” section to:
-  - [ ] Render manga continue items from context
-  - [ ] Navigate to `/manga-reader` with resume params
-- [ ] Manual testing: verify resume works + chapter/scroll restores + poster loads
+# TODO - dango-api backend
+
+- [ ] Create `dango-api/` Express + TypeScript project scaffold
+- [ ] Add secret-header guard middleware (`DANGO_API_SECRET*` envs)
+- [ ] Add KV/Upstash-backed rate limiting middleware
+- [ ] Add CORS configuration
+- [ ] Implement TMDB proxy routes under `/tmdb/*` (allowlist)
+- [ ] Add env validation + `.env.example` + backend README
+- [ ] Add local dev scripts and a `/health` endpoint
+- [x] Install backend deps and run `npm run dev`
+
+

@@ -468,7 +468,6 @@ function MangaRow({
             </View>
           </View>
           <Text style={styles.mangaTitle} numberOfLines={2}>{item.title}</Text>
-          <Text style={styles.mangaSource}>MangaFire</Text>
         </TouchableOpacity>
       )}
     />
@@ -629,7 +628,7 @@ export default function HomeScreen() {
               onPress={(id, _) => { const it = trending.data?.results.find(r => r.id === id); handlePress(id, (it as any)?.media_type ?? 'movie'); }} />
             <SectionHeader title="Popular Movies & Shows" />
             <MediaRow data={allAnime} loading={anime.loading} type="tv" onPress={handlePress} />
-            <SectionHeader title="Manga on MangaFire" />
+            <SectionHeader title="Manga" />
             <MangaRow data={mangaFire.data} loading={mangaFire.loading} onPress={handleMangaPress} />
             <SectionHeader title="Now Airing" />
             <MediaRow data={tv(nowAiringTV.data?.results)} loading={nowAiringTV.loading} type="tv" onPress={handlePress} />
@@ -725,10 +724,9 @@ export default function HomeScreen() {
           </>
         )}
 
-        {/* ── Continue Watching ── */}
         {(category === 'manga') && (
           <>
-            <SectionHeader title="Manga on MangaFire" />
+            <SectionHeader title="Featured" />
             <MangaRow data={mangaFire.home.featured} loading={mangaFire.loading} onPress={handleMangaPress} />
             <SectionHeader title="Most Viewed" />
             <MangaRow data={mangaFire.home.mostViewed} loading={mangaFire.loading} onPress={handleMangaPress} />
@@ -742,11 +740,11 @@ export default function HomeScreen() {
           </>
         )}
 
-        {continueItems.length > 0 && (
+        {continueItems.filter(i => i.type !== 'manga').length > 0 && (
           <>
             <SectionHeader title="Continue Watching" />
             <FlatList
-              data={continueItems}
+              data={continueItems.filter(i => i.type !== 'manga')}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.rowPad}
@@ -754,7 +752,7 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <ContinueCard
                   item={item}
-                  onRemove={() => removeContinue(item.tmdbId)}
+                  onRemove={() => removeContinue({ type: item.type, tmdbId: item.tmdbId })}
                   onPress={() =>
                     router.push({
                       pathname: '/player',
@@ -890,7 +888,6 @@ const styles = StyleSheet.create({
   },
   mangaBadgeText: { color: Colors.primary, fontSize: 9, fontWeight: '800' },
   mangaTitle: { ...TextStyles.labelMedium, color: Colors.primaryText, marginTop: Spacing.xs },
-  mangaSource: { ...TextStyles.labelSmall, color: Colors.hint, marginTop: 2 },
   mangaError: {
     ...TextStyles.bodySmall,
     color: Colors.hint,

@@ -6,13 +6,20 @@
  * Get a free token at: https://www.themoviedb.org/settings/api
  */
 
-const ACCESS_TOKEN = process.env.EXPO_PUBLIC_TMDB_ACCESS_TOKEN ?? '';
-const BASE_URL = 'https://api.themoviedb.org/3';
-export const IMAGE_BASE = 'https://image.tmdb.org/t/p';
+const BASE_URL = process.env.EXPO_PUBLIC_DANGO_API_BASE_URL ?? '';
+const IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
-if (!ACCESS_TOKEN) {
-  console.warn('[TMDB] EXPO_PUBLIC_TMDB_ACCESS_TOKEN is not set. Add it to your .env file.');
+const SECRET_HEADER_NAME = process.env.EXPO_PUBLIC_DANGO_API_SECRET_HEADER_NAME ?? 'x-dango-secret';
+const SECRET_HEADER_VALUE = process.env.EXPO_PUBLIC_DANGO_API_SECRET ?? '';
+
+if (!BASE_URL) {
+  console.warn('[dango-api] EXPO_PUBLIC_DANGO_API_BASE_URL is not set.');
 }
+
+if (!SECRET_HEADER_VALUE) {
+  console.warn('[dango-api] EXPO_PUBLIC_DANGO_API_SECRET is not set.');
+}
+
 
 // ─── Image helpers ────────────────────────────────────────────────────────────
 
@@ -125,19 +132,24 @@ async function tmdbFetch<T>(endpoint: string, params: Record<string, string> = {
   const qs = Object.entries(params)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&');
-  const url = `${BASE_URL}${endpoint}${qs ? `?${qs}` : ''}`;
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${ACCESS_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  // Our backend mirrors TMDB paths under /tmdb and returns TMDB JSON.
+  // Example: endpoint=/trending/all/week -> GET ${BASE_URL}/tmdb/trending/all/week
+  const url = `${BASE_URL}/tmdb${endpoint}${qs ? `?${qs}` : ''}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (SECRET_HEADER_VALUE) {
+    headers[SECRET_HEADER_NAME] = SECRET_HEADER_VALUE;
+  }
+
+  const res = await fetch(url, { headers });
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const msg = `TMDB ${res.status}: ${res.statusText} — ${endpoint} — ${body}`;
-    console.error('[TMDB]', msg);
+    const msg = `dango-api TMDB proxy ${res.status}: ${res.statusText} — ${endpoint} — ${body}`;
+    console.error('[dango-api]', msg);
     throw new Error(msg);
   }
 

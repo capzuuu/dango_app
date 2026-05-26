@@ -96,6 +96,17 @@ export default function DownloadsScreen() {
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
+
+      {/* ── Coming Soon overlay ── */}
+      <View style={styles.blurOverlay} />
+      <View style={styles.comingSoonBox}>
+        <View style={styles.comingSoonIcon}>
+          <Ionicons name="cloud-download-outline" size={36} color={Colors.primary} />
+        </View>
+        <Text style={styles.comingSoonTitle}>Coming Soon</Text>
+        <Text style={styles.comingSoonSub}>Downloads will be available in a future update.</Text>
+      </View>
+
     </SafeAreaView>
   );
 }
@@ -163,4 +174,33 @@ const styles = StyleSheet.create({
   },
   storageFill: { height: 6, backgroundColor: Colors.primary, borderRadius: 3 },
   storageNote: { ...TextStyles.bodySmall, color: Colors.secondaryText },
+
+  // Coming Soon
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+  },
+  comingSoonBox: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xxl,
+  },
+  comingSoonIcon: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  comingSoonTitle: {
+    ...TextStyles.headlineMedium,
+    color: Colors.primaryText,
+    textAlign: 'center',
+  },
+  comingSoonSub: {
+    ...TextStyles.bodyMedium,
+    color: Colors.secondaryText,
+    textAlign: 'center',
+  },
 });
