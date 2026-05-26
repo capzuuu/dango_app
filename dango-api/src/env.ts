@@ -24,9 +24,15 @@ const envSchema = z.object({
 
   // Upstash / Vercel KV REST API
   // Upstash: UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
-  UPSTASH_REDIS_REST_URL: z.string().min(1).optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  UPSTASH_REDIS_REST_URL: z
+    .string()
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
 
+  UPSTASH_REDIS_REST_TOKEN: z
+    .string()
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
   // CORS
   CORS_ORIGINS: z.string().optional(),
 
