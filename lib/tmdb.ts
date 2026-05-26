@@ -17,10 +17,10 @@ if (!ACCESS_TOKEN) {
 // ─── Image helpers ────────────────────────────────────────────────────────────
 
 export const posterUrl = (path: string | null, size: 'w185' | 'w342' | 'w500' | 'original' = 'w342') =>
-  path ? `${IMAGE_BASE}/${size}${path}` : null;
+  path ? /^https?:\/\//i.test(path) ? path : `${IMAGE_BASE}/${size}${path}` : null;
 
-export const backdropUrl = (path: string | null, size: 'w780' | 'w1280' | 'original' = 'w780') =>
-  path ? `${IMAGE_BASE}/${size}${path}` : null;
+export const backdropUrl = (path: string | null, size: 'w300' | 'w780' | 'w1280' | 'original' = 'w780') =>
+  path ? /^https?:\/\//i.test(path) ? path : `${IMAGE_BASE}/${size}${path}` : null;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -174,9 +174,50 @@ export const getTopRatedMovies = (page = 1) =>
 export const getTopRatedTV = (page = 1) =>
   tmdbFetch<TMDBPage<TMDBShow>>('/tv/top_rated', { page: String(page) });
 
+/** Now playing in theatres */
+export const getNowPlayingMovies = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBMovie>>('/movie/now_playing', { page: String(page) });
+
+/** Upcoming movies */
+export const getUpcomingMovies = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBMovie>>('/movie/upcoming', { page: String(page) });
+
+/** Most favorited movies (vote_count weighted) */
+export const getMostFavoritedMovies = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBMovie>>('/discover/movie', {
+    sort_by: 'vote_count.desc',
+    page: String(page),
+  });
+
+/** Now airing TV */
+export const getNowAiringTV = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/tv/on_the_air', { page: String(page) });
+
+/** Most favorited TV */
+export const getMostFavoritedTV = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    sort_by: 'vote_count.desc',
+    page: String(page),
+  });
+
+/** Recently added movies (sorted by release date) */
+export const getRecentMovies = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBMovie>>('/discover/movie', {
+    sort_by: 'primary_release_date.desc',
+    'vote_count.gte': '50',
+    page: String(page),
+  });
+
+/** Recently added TV */
+export const getRecentTV = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    sort_by: 'first_air_date.desc',
+    'vote_count.gte': '20',
+    page: String(page),
+  });
+
 /**
  * K-Drama: Korean TV shows
- * Uses discover/tv with origin_country=KR and with_genres=18 (Drama)
  */
 export const getKDramas = (page = 1) =>
   tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
@@ -186,14 +227,117 @@ export const getKDramas = (page = 1) =>
     page: String(page),
   });
 
+export const getKDramasTopRated = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'KR',
+    with_genres: '18',
+    sort_by: 'vote_average.desc',
+    'vote_count.gte': '100',
+    page: String(page),
+  });
+
+export const getKDramasNowAiring = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'KR',
+    with_genres: '18',
+    sort_by: 'first_air_date.desc',
+    page: String(page),
+  });
+
+export const getKDramasMostFavorited = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'KR',
+    with_genres: '18',
+    sort_by: 'vote_count.desc',
+    page: String(page),
+  });
+
+export const getKDramasUpcoming = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'KR',
+    with_genres: '18',
+    sort_by: 'first_air_date.desc',
+    'first_air_date.gte': new Date().toISOString().slice(0, 10),
+    page: String(page),
+  });
+
 /**
  * Anime: Japanese animation
- * Uses discover/tv with origin_country=JP and with_genres=16 (Animation)
  */
 export const getAnime = (page = 1) =>
   tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
     with_origin_country: 'JP',
     with_genres: '16',
+    sort_by: 'popularity.desc',
+    page: String(page),
+  });
+
+export const getAnimeTopRated = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'JP',
+    with_genres: '16',
+    sort_by: 'vote_average.desc',
+    'vote_count.gte': '100',
+    page: String(page),
+  });
+
+export const getAnimeNowAiring = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'JP',
+    with_genres: '16',
+    sort_by: 'first_air_date.desc',
+    page: String(page),
+  });
+
+export const getAnimeMostFavorited = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'JP',
+    with_genres: '16',
+    sort_by: 'vote_count.desc',
+    page: String(page),
+  });
+
+export const getAnimeUpcoming = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'JP',
+    with_genres: '16',
+    sort_by: 'first_air_date.desc',
+    'first_air_date.gte': new Date().toISOString().slice(0, 10),
+    page: String(page),
+  });
+
+/** C-Drama: Chinese TV shows */
+export const getCDramas = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'CN',
+    with_genres: '18',
+    sort_by: 'popularity.desc',
+    page: String(page),
+  });
+
+/** Short Asian films / shorts */
+export const getAsianShorts = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBMovie>>('/discover/movie', {
+    with_origin_country: 'CN|KR|JP|TH',
+    sort_by: 'popularity.desc',
+    'with_runtime.lte': '40',
+    page: String(page),
+  });
+
+/** Thai dramas */
+export const getThaiDramas = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'TH',
+    with_genres: '18',
+    sort_by: 'popularity.desc',
+    page: String(page),
+  });
+
+/** Taiwanese dramas */
+export const getTaiwanDramas = (page = 1) =>
+  tmdbFetch<TMDBPage<TMDBShow>>('/discover/tv', {
+    with_origin_country: 'TW',
+    with_genres: '18',
     sort_by: 'popularity.desc',
     page: String(page),
   });

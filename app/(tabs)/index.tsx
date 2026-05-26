@@ -3,14 +3,36 @@ import { CardRowSkeleton } from '@/components/skeleton';
 import { Colors, Radii, Spacing, TextStyles } from '@/constants/theme';
 import { ContinueItem, useContinueWatching } from '@/context/continue-watching-context';
 import { ListItem, resolveCategory, useMyList } from '@/context/my-list-context';
+import { useProfile } from '@/context/profile-context';
+import { useMangaFireHome } from '@/hooks/use-mangafire';
 import {
   useAnime,
+  useAnime2,
+  useAnime3,
+  useAnimeMostFavorited,
+  useAnimeNowAiring,
+  useAnimeTopRated,
+  useAnimeUpcoming,
   useKDramas,
+  useKDramas2,
+  useKDramas3,
+  useKDramasMostFavorited,
+  useKDramasNowAiring,
+  useKDramasTopRated,
+  useKDramasUpcoming,
+  useMostFavoritedMovies,
+  useMostFavoritedTV,
+  useNowAiringTV,
+  useNowPlayingMovies,
   usePopularMovies,
   usePopularTV,
+  useRecentMovies,
+  useRecentTV,
   useTopRatedMovies,
   useTopRatedTV,
   useTrendingAll,
+  useTrendingTV,
+  useUpcomingMovies,
 } from '@/hooks/use-tmdb';
 import {
     backdropUrl,
@@ -42,6 +64,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const { width: SCREEN_W } = Dimensions.get('window');
 const HERO_H = 520;
 const AUTO_INTERVAL = 4000;
+
+type Category = 'all' | 'movies' | 'series' | 'kdrama' | 'anime' | 'manga';
+const CATEGORIES: { key: Category; label: string }[] = [
+  { key: 'all',    label: 'All' },
+  { key: 'movies', label: 'Movies' },
+  { key: 'series', label: 'Series' },
+  { key: 'kdrama', label: 'K-Drama' },
+  { key: 'anime',  label: 'Anime' },
+  { key: 'manga',  label: 'Manga' },
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -401,50 +433,179 @@ function MediaRow({
   );
 }
 
+// ─── Category Filter Bar ─────────────────────────────────────────────────────
+
+function MangaRow({
+  data,
+  loading,
+  onPress,
+}: {
+  data: import('@/lib/mangafire').MangaFireItem[];
+  loading: boolean;
+  onPress: (item: import('@/lib/mangafire').MangaFireItem) => void;
+}) {
+  if (loading) return <CardRowSkeleton />;
+
+  return (
+    <FlatList
+      data={data}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.rowPad}
+      keyExtractor={item => item.id}
+      renderItem={({ item }) => (
+        <TouchableOpacity style={styles.mangaCard} onPress={() => onPress(item)} activeOpacity={0.85}>
+          <View style={styles.mangaPoster}>
+            {item.posterUrl ? (
+              <Image source={{ uri: item.posterUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+            ) : (
+              <View style={styles.mangaPlaceholder}>
+                <Ionicons name="book-outline" size={24} color={Colors.hint} />
+              </View>
+            )}
+            <View style={styles.mangaBadge}>
+              <Text style={styles.mangaBadgeText}>MANGA</Text>
+            </View>
+          </View>
+          <Text style={styles.mangaTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.mangaSource}>MangaFire</Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
+}
+
+function CategoryBar({ active, onChange }: { active: Category; onChange: (c: Category) => void }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={catStyles.bar}
+      contentContainerStyle={catStyles.content}
+    >
+      {CATEGORIES.map(c => (
+        <TouchableOpacity key={c.key} onPress={() => onChange(c.key)} style={catStyles.item}>
+          <Text style={[catStyles.label, active === c.key && catStyles.labelActive]}>{c.label}</Text>
+          {active === c.key && <View style={catStyles.underline} />}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
+
+const catStyles = StyleSheet.create({
+  bar: {
+    backgroundColor: Colors.background,
+    paddingVertical: Spacing.sm,
+  },
+  content: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.xl,
+  },
+  item: { alignItems: 'center', paddingBottom: 4 },
+  label: { ...TextStyles.titleMedium, color: Colors.secondaryText },
+  labelActive: { color: Colors.primaryText },
+  underline: { height: 2, width: '100%', backgroundColor: Colors.primary, marginTop: 3, borderRadius: 1 },
+});
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { activeProfile } = useProfile();
   const { items: continueItems, remove: removeContinue } = useContinueWatching();
+  const mangaFire = useMangaFireHome();
 
-  const trending    = useTrendingAll();
-  const popular     = usePopularMovies();
-  const kdramas     = useKDramas();
-  const tvShows     = usePopularTV();
-  const topMovies   = useTopRatedMovies();
-  const topTV       = useTopRatedTV();
-  const anime       = useAnime();
+  const [category, setCategory] = useState<Category>('all');
 
-  // Build hero slides: top 10 from trending (mix of movies + TV)
+  const trending         = useTrendingAll();
+  const popular          = usePopularMovies();
+  const topMovies        = useTopRatedMovies();
+  const nowPlaying       = useNowPlayingMovies();
+  const upcoming         = useUpcomingMovies();
+  const recentMovies     = useRecentMovies();
+  const favMovies        = useMostFavoritedMovies();
+
+  const nowAiringTV      = useNowAiringTV();
+  const popularTV        = usePopularTV();
+  const topRatedTV       = useTopRatedTV();
+  const trendingTV       = useTrendingTV();
+  const recentTV         = useRecentTV();
+  const favTV            = useMostFavoritedTV();
+
+  const kdramas          = useKDramas();
+  const kdramas2         = useKDramas2();
+  const kdramas3         = useKDramas3();
+  const kdramasTopRated  = useKDramasTopRated();
+  const kdramasNowAiring = useKDramasNowAiring();
+  const kdramasFav       = useKDramasMostFavorited();
+  const kdramasUpcoming  = useKDramasUpcoming();
+
+  const anime            = useAnime();
+  const anime2           = useAnime2();
+  const anime3           = useAnime3();
+  const animeTopRated    = useAnimeTopRated();
+  const animeNowAiring   = useAnimeNowAiring();
+  const animeFav         = useAnimeMostFavorited();
+  const animeUpcoming    = useAnimeUpcoming();
+
+  // Build hero slides: mix of trending, movies, K-dramas, anime
   const heroItems = useMemo<TMDBItem[]>(() => {
-    const t = (trending.data?.results ?? []) as TMDBItem[];
-    return t.slice(0, 10);
-  }, [trending.data]);
-
-  // Build merged rows
-  const allMovies = useMemo(() =>
-    mergeUnique(
-      (popular.data?.results ?? []).map(i => toItem(i, 'movie')),
-      (topMovies.data?.results ?? []).map(i => toItem(i, 'movie')),
-    ),
-    [popular.data, topMovies.data]
-  );
-
-  const allTV = useMemo(() =>
-    mergeUnique(
-      (tvShows.data?.results ?? []).map(i => toItem(i, 'tv')),
-      (topTV.data?.results ?? []).map(i => toItem(i, 'tv')),
-    ),
-    [tvShows.data, topTV.data]
-  );
+    const trendingItems = ((trending.data?.results ?? []) as TMDBItem[]).slice(0, 4);
+    const movieItems    = (popular.data?.results ?? []).slice(0, 3).map(i => toItem(i, 'movie'));
+    const seriesItems   = (popularTV.data?.results ?? []).slice(0, 3).map(i => toItem(i, 'tv'));
+    const kdramaItems   = (kdramas.data?.results ?? []).slice(0, 3).map(i => toItem(i, 'tv'));
+    const animeItems    = (anime.data?.results  ?? []).slice(0, 3).map(i => toItem(i, 'tv'));
+    // interleave by picking one from each source in rotation
+    const sources = [trendingItems, movieItems, seriesItems, kdramaItems, animeItems];
+    const interleaved: TMDBItem[] = [];
+    const seen = new Set<number>();
+    const maxLen = Math.max(...sources.map(s => s.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const src of sources) {
+        if (src[i] && !seen.has(src[i].id)) {
+          seen.add(src[i].id);
+          interleaved.push(src[i]);
+        }
+      }
+    }
+    return interleaved.slice(0, 15);
+  }, [trending.data, popular.data, popularTV.data, kdramas.data, anime.data]);
 
   const allKDramas = useMemo(() =>
-    (kdramas.data?.results ?? []).map(i => toItem(i, 'tv')),
-    [kdramas.data]
+    mergeUnique(
+      (kdramas.data?.results ?? []).map(i => toItem(i, 'tv')),
+      (kdramas2.data?.results ?? []).map(i => toItem(i, 'tv')),
+      (kdramas3.data?.results ?? []).map(i => toItem(i, 'tv')),
+    ),
+    [kdramas.data, kdramas2.data, kdramas3.data]
   );
+
+  const allAnime = useMemo(() =>
+    mergeUnique(
+      (anime.data?.results ?? []).map(i => toItem(i, 'tv')),
+      (anime2.data?.results ?? []).map(i => toItem(i, 'tv')),
+      (anime3.data?.results ?? []).map(i => toItem(i, 'tv')),
+    ),
+    [anime.data, anime2.data, anime3.data]
+  );
+
+  const tv = (d: TMDBShow[] | undefined) => (d ?? []).map(i => toItem(i, 'tv'));
+  const mv = (d: TMDBMovie[] | undefined) => (d ?? []).map(i => toItem(i, 'movie'));
 
   const handlePress = (id: number, type: 'movie' | 'tv') =>
     router.push({ pathname: '/details', params: { id: String(id), type } });
+
+  const handleMangaPress = (item: import('@/lib/mangafire').MangaFireItem) => {
+    router.push({
+      pathname: '/manga-reader',
+      params: {
+        url: item.url,
+        title: item.title,
+        posterUrl: item.posterUrl ?? '',
+      },
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -457,73 +618,130 @@ export default function HomeScreen() {
           onPress={item => handlePress(item.id, (item as any).media_type ?? 'movie')}
         />
 
-        {/* ── Trending Now ── */}
-        <SectionHeader title="Trending Now" />
-        <MediaRow
-          data={(trending.data?.results ?? []) as TMDBItem[]}
-          loading={trending.loading}
-          type="movie"
-          onPress={(id, _) => {
-            const item = trending.data?.results.find(r => r.id === id);
-            handlePress(id, (item as any)?.media_type ?? 'movie');
-          }}
-        />
+        {/* ── Category Filter Bar ── */}
+        <CategoryBar active={category} onChange={setCategory} />
 
-        {/* ── Popular Movies ── */}
-        <SectionHeader title="Popular Movies" />
-        <MediaRow
-          data={popular.data?.results ?? []}
-          loading={popular.loading}
-          type="movie"
-          onPress={handlePress}
-        />
+        {/* ── All ── */}
+        {(category === 'all') && (
+          <>
+            <SectionHeader title="Trending Now" />
+            <MediaRow data={(trending.data?.results ?? []) as TMDBItem[]} loading={trending.loading} type="movie"
+              onPress={(id, _) => { const it = trending.data?.results.find(r => r.id === id); handlePress(id, (it as any)?.media_type ?? 'movie'); }} />
+            <SectionHeader title="Popular Movies & Shows" />
+            <MediaRow data={allAnime} loading={anime.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Manga on MangaFire" />
+            <MangaRow data={mangaFire.data} loading={mangaFire.loading} onPress={handleMangaPress} />
+            <SectionHeader title="Now Airing" />
+            <MediaRow data={tv(nowAiringTV.data?.results)} loading={nowAiringTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Upcoming Releases" />
+            <MediaRow data={mv(upcoming.data?.results)} loading={upcoming.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Top Rated" />
+            <MediaRow data={mv(topMovies.data?.results)} loading={topMovies.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Recently Added" />
+            <MediaRow data={mv(recentMovies.data?.results)} loading={recentMovies.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Most Favorited" />
+            <MediaRow data={mv(favMovies.data?.results)} loading={favMovies.loading} type="movie" onPress={handlePress} />
+          </>
+        )}
 
-        {/* ── Top Rated Movies ── */}
-        <SectionHeader title="Top Rated Movies" />
-        <MediaRow
-          data={topMovies.data?.results ?? []}
-          loading={topMovies.loading}
-          type="movie"
-          onPress={handlePress}
-        />
+        {/* ── Movies ── */}
+        {(category === 'movies') && (
+          <>
+            <SectionHeader title="Trending Now" />
+            <MediaRow data={(trending.data?.results ?? []).filter(i => (i as any).media_type === 'movie') as TMDBItem[]} loading={trending.loading} type="movie"
+              onPress={(id, _) => handlePress(id, 'movie')} />
+            <SectionHeader title="Popular Movies" />
+            <MediaRow data={mv(popular.data?.results)} loading={popular.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Now Airing" />
+            <MediaRow data={mv(nowPlaying.data?.results)} loading={nowPlaying.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Upcoming Releases" />
+            <MediaRow data={mv(upcoming.data?.results)} loading={upcoming.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Top Rated" />
+            <MediaRow data={mv(topMovies.data?.results)} loading={topMovies.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Recently Added" />
+            <MediaRow data={mv(recentMovies.data?.results)} loading={recentMovies.loading} type="movie" onPress={handlePress} />
+            <SectionHeader title="Most Favorited" />
+            <MediaRow data={mv(favMovies.data?.results)} loading={favMovies.loading} type="movie" onPress={handlePress} />
+          </>
+        )}
 
-        {/* ── K-Dramas ── */}
-        <SectionHeader title="K-Dramas" />
-        <MediaRow
-          data={allKDramas}
-          loading={kdramas.loading}
-          type="tv"
-          onPress={handlePress}
-        />
+        {/* ── Series ── */}
+        {(category === 'series') && (
+          <>
+            <SectionHeader title="Trending Now" />
+            <MediaRow data={tv(trendingTV.data?.results)} loading={trendingTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Popular Series" />
+            <MediaRow data={tv(popularTV.data?.results)} loading={popularTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Now Airing" />
+            <MediaRow data={tv(nowAiringTV.data?.results)} loading={nowAiringTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Upcoming Releases" />
+            <MediaRow data={tv(nowAiringTV.data?.results)} loading={nowAiringTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Top Rated" />
+            <MediaRow data={tv(topRatedTV.data?.results)} loading={topRatedTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Recently Added" />
+            <MediaRow data={tv(recentTV.data?.results)} loading={recentTV.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Most Favorited" />
+            <MediaRow data={tv(favTV.data?.results)} loading={favTV.loading} type="tv" onPress={handlePress} />
+          </>
+        )}
+
+        {/* ── K-Drama ── */}
+        {(category === 'kdrama') && (
+          <>
+            <SectionHeader title="Trending Now" />
+            <MediaRow data={allKDramas} loading={kdramas.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Popular K-Dramas" />
+            <MediaRow data={allKDramas} loading={kdramas.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Now Airing" />
+            <MediaRow data={tv(kdramasNowAiring.data?.results)} loading={kdramasNowAiring.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Upcoming Releases" />
+            <MediaRow data={tv(kdramasUpcoming.data?.results)} loading={kdramasUpcoming.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Top Rated" />
+            <MediaRow data={tv(kdramasTopRated.data?.results)} loading={kdramasTopRated.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Recently Added" />
+            <MediaRow data={tv(kdramasNowAiring.data?.results)} loading={kdramasNowAiring.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Most Favorited" />
+            <MediaRow data={tv(kdramasFav.data?.results)} loading={kdramasFav.loading} type="tv" onPress={handlePress} />
+          </>
+        )}
 
         {/* ── Anime ── */}
-        <SectionHeader title="Anime" />
-        <MediaRow
-          data={anime.data?.results ?? []}
-          loading={anime.loading}
-          type="tv"
-          onPress={handlePress}
-        />
-
-        {/* ── Popular Series ── */}
-        <SectionHeader title="Popular Series" />
-        <MediaRow
-          data={tvShows.data?.results ?? []}
-          loading={tvShows.loading}
-          type="tv"
-          onPress={handlePress}
-        />
-
-        {/* ── Top Rated Series ── */}
-        <SectionHeader title="Top Rated Series" />
-        <MediaRow
-          data={topTV.data?.results ?? []}
-          loading={topTV.loading}
-          type="tv"
-          onPress={handlePress}
-        />
+        {(category === 'anime') && (
+          <>
+            <SectionHeader title="Trending Now" />
+            <MediaRow data={allAnime} loading={anime.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Popular Anime" />
+            <MediaRow data={tv(animeFav.data?.results)} loading={animeFav.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Now Airing" />
+            <MediaRow data={tv(animeNowAiring.data?.results)} loading={animeNowAiring.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Upcoming Releases" />
+            <MediaRow data={tv(animeUpcoming.data?.results)} loading={animeUpcoming.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Top Rated" />
+            <MediaRow data={tv(animeTopRated.data?.results)} loading={animeTopRated.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Recently Added" />
+            <MediaRow data={tv(animeNowAiring.data?.results)} loading={animeNowAiring.loading} type="tv" onPress={handlePress} />
+            <SectionHeader title="Most Favorited" />
+            <MediaRow data={tv(animeFav.data?.results)} loading={animeFav.loading} type="tv" onPress={handlePress} />
+          </>
+        )}
 
         {/* ── Continue Watching ── */}
+        {(category === 'manga') && (
+          <>
+            <SectionHeader title="Manga on MangaFire" />
+            <MangaRow data={mangaFire.home.featured} loading={mangaFire.loading} onPress={handleMangaPress} />
+            <SectionHeader title="Most Viewed" />
+            <MangaRow data={mangaFire.home.mostViewed} loading={mangaFire.loading} onPress={handleMangaPress} />
+            <SectionHeader title="Recently Updated" />
+            <MangaRow data={mangaFire.home.recentlyUpdated} loading={mangaFire.loading} onPress={handleMangaPress} />
+            <SectionHeader title="New Release" />
+            <MangaRow data={mangaFire.home.newRelease} loading={mangaFire.loading} onPress={handleMangaPress} />
+            {mangaFire.error && mangaFire.data.length === 0 ? (
+              <Text style={styles.mangaError}>MangaFire is unavailable right now.</Text>
+            ) : null}
+          </>
+        )}
+
         {continueItems.length > 0 && (
           <>
             <SectionHeader title="Continue Watching" />
@@ -562,14 +780,14 @@ export default function HomeScreen() {
 
       {/* ── Top Nav (overlaid) ── */}
       <SafeAreaView style={styles.topNav} edges={['top']} pointerEvents="box-none">
-        <Text style={styles.logo}>DANGO</Text>
+        <Image source={require('@/assets/images/dango-logo.png')} style={styles.logoImg} contentFit="contain" contentPosition="left" />
         <View style={styles.navRight}>
           <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
             <Ionicons name="search" size={26} color={Colors.primaryText} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/profile-select')}>
-            <View style={styles.avatarBox}>
-              <Text style={styles.avatarText}>M</Text>
+            <View style={[styles.avatarBox, { backgroundColor: activeProfile.color }]}>
+              <Text style={styles.avatarEmoji}>{activeProfile.emoji}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -633,14 +851,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm,
   },
-  logo: { color: Colors.primary, fontSize: 24, fontWeight: '900', letterSpacing: 2 },
+  logoImg: { width: 110, height: 40, alignSelf: 'center' },
   navRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
   avatarBox: {
     width: 32, height: 32, borderRadius: Radii.sm,
-    backgroundColor: Colors.surfaceVariant,
     justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden',
   },
-  avatarText: { color: Colors.primaryText, fontWeight: '700', fontSize: 14 },
+  avatarEmoji: { fontSize: 18 },
   sectionHeader: {
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -648,6 +866,37 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { ...TextStyles.titleMedium, color: Colors.primaryText },
   rowPad: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
+  mangaCard: { width: 112, marginRight: Spacing.sm },
+  mangaPoster: {
+    width: 112,
+    height: 164,
+    borderRadius: Radii.md,
+    overflow: 'hidden',
+    backgroundColor: Colors.surfaceVariant,
+  },
+  mangaPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mangaBadge: {
+    position: 'absolute',
+    left: Spacing.xs,
+    bottom: Spacing.xs,
+    borderRadius: Radii.xs,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+  },
+  mangaBadgeText: { color: Colors.primary, fontSize: 9, fontWeight: '800' },
+  mangaTitle: { ...TextStyles.labelMedium, color: Colors.primaryText, marginTop: Spacing.xs },
+  mangaSource: { ...TextStyles.labelSmall, color: Colors.hint, marginTop: 2 },
+  mangaError: {
+    ...TextStyles.bodySmall,
+    color: Colors.hint,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
   continueCard: { width: 220, marginRight: Spacing.sm },
   continueBg: {
     height: 124, borderRadius: Radii.md,

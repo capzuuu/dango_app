@@ -5,17 +5,36 @@
 
 import {
     getAnime,
+    getAnimeMostFavorited,
+    getAnimeNowAiring,
+    getAnimeTopRated,
+    getAnimeUpcoming,
+    getAsianShorts,
+    getCDramas,
     getKDramas,
+    getKDramasMostFavorited,
+    getKDramasNowAiring,
+    getKDramasTopRated,
+    getKDramasUpcoming,
+    getMostFavoritedMovies,
+    getMostFavoritedTV,
     getMovieDetail,
+    getNowAiringTV,
+    getNowPlayingMovies,
     getPopularMovies,
     getPopularTV,
+    getRecentMovies,
+    getRecentTV,
     getSeasonEpisodes,
     getShowDetail,
+    getTaiwanDramas,
+    getThaiDramas,
     getTopRatedMovies,
     getTopRatedTV,
     getTrendingAll,
     getTrendingMovies,
     getTrendingTV,
+    getUpcomingMovies,
     searchMulti,
     TMDBItem,
     TMDBMovie,
@@ -97,12 +116,104 @@ export function useTopRatedTV() {
   return useFetch<TMDBPage<TMDBShow>>(() => getTopRatedTV(), 'top-rated-tv');
 }
 
+export function useNowPlayingMovies() {
+  return useFetch<TMDBPage<TMDBMovie>>(() => getNowPlayingMovies(), 'now-playing-movies');
+}
+
+export function useUpcomingMovies() {
+  return useFetch<TMDBPage<TMDBMovie>>(() => getUpcomingMovies(), 'upcoming-movies');
+}
+
+export function useMostFavoritedMovies() {
+  return useFetch<TMDBPage<TMDBMovie>>(() => getMostFavoritedMovies(), 'most-favorited-movies');
+}
+
+export function useNowAiringTV() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getNowAiringTV(), 'now-airing-tv');
+}
+
+export function useMostFavoritedTV() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getMostFavoritedTV(), 'most-favorited-tv');
+}
+
+export function useRecentMovies() {
+  return useFetch<TMDBPage<TMDBMovie>>(() => getRecentMovies(), 'recent-movies');
+}
+
+export function useRecentTV() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getRecentTV(), 'recent-tv');
+}
+
 export function useKDramas() {
   return useFetch<TMDBPage<TMDBShow>>(() => getKDramas(), 'kdramas');
 }
 
+export function useKDramas2() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getKDramas(2), 'kdramas-2');
+}
+
+export function useKDramas3() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getKDramas(3), 'kdramas-3');
+}
+
+export function useKDramasTopRated() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getKDramasTopRated(), 'kdramas-top-rated');
+}
+
+export function useKDramasNowAiring() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getKDramasNowAiring(), 'kdramas-now-airing');
+}
+
+export function useKDramasMostFavorited() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getKDramasMostFavorited(), 'kdramas-most-favorited');
+}
+
+export function useKDramasUpcoming() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getKDramasUpcoming(), 'kdramas-upcoming');
+}
+
 export function useAnime() {
   return useFetch<TMDBPage<TMDBShow>>(() => getAnime(), 'anime');
+}
+
+export function useAnime2() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getAnime(2), 'anime-2');
+}
+
+export function useAnime3() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getAnime(3), 'anime-3');
+}
+
+export function useAnimeTopRated() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getAnimeTopRated(), 'anime-top-rated');
+}
+
+export function useAnimeNowAiring() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getAnimeNowAiring(), 'anime-now-airing');
+}
+
+export function useAnimeMostFavorited() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getAnimeMostFavorited(), 'anime-most-favorited');
+}
+
+export function useAnimeUpcoming() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getAnimeUpcoming(), 'anime-upcoming');
+}
+
+export function useCDramas() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getCDramas(), 'cdramas');
+}
+
+export function useAsianShorts() {
+  return useFetch<TMDBPage<TMDBMovie>>(() => getAsianShorts(), 'asian-shorts');
+}
+
+export function useThaiDramas() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getThaiDramas(), 'thai-dramas');
+}
+
+export function useTaiwanDramas() {
+  return useFetch<TMDBPage<TMDBShow>>(() => getTaiwanDramas(), 'taiwan-dramas');
 }
 
 // ─── Detail hooks ─────────────────────────────────────────────────────────────
