@@ -1,4 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, Radii, Spacing, TextStyles } from "@/constants/theme";
+import { ContinueItem, useContinueWatching } from "@/context/continue-watching-context";
 import {
   getMangaFireDetails,
   MangaFireChapter,
@@ -50,7 +52,9 @@ const READER_CSS = `
     var style = document.createElement('style');
     style.innerHTML = \`
       header, footer, #ctrl-menu, #progress-bar, #number-panel, #page-panel,
-      .modal, .bg, .sharethis-inline-share-buttons, script + iframe {
+      .modal, .bg, .sharethis-inline-share-buttons, script + iframe,
+      a[href*="/chapter"], a[href*="/chap"], [class*="prev"], [class*="next"],
+      [id*="prev"], [id*="next"] {
         display: none !important;
         opacity: 0 !important;
         pointer-events: none !important;
@@ -269,6 +273,10 @@ export default function MangaReaderScreen() {
   const [fitToWidth, setFitToWidth] = useState(true);
   const [progress, setProgress] = useState(0);
   const didAutoAdvanceRef = useRef(false);
+  const selectedChapterRef = useRef<MangaFireChapter | null>(null);
+  const { upsert: upsertContinue } = useContinueWatching();
+  const saveDataRef = useRef({ title: title || 'Manga Reader', posterUri: posterUrl || null });
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -307,6 +315,7 @@ export default function MangaReaderScreen() {
         };
 
         setDetails(normalizedDetails);
+        selectedChapterRef.current = sortedChapters[0] ?? null;
         setSelectedChapter(sortedChapters[0] ?? null);
         setLoadingDetails(false);
       })
@@ -321,7 +330,18 @@ export default function MangaReaderScreen() {
     };
   }, [url]);
 
+  const posterUri = details?.posterUrl || posterUrl || null;
   const displayTitle = details?.title || title || "Manga Reader";
+
+  // Keep saveDataRef in sync so the WebView message handler is never stale
+  useEffect(() => {
+    saveDataRef.current = { title: displayTitle, posterUri };
+  }, [displayTitle, posterUri]);
+
+  // Clear debounce timer on unmount
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+  }, []);
   const activeIndex = useMemo(() => {
     if (!details || !selectedChapter) return -1;
     return details.chapters.findIndex(
@@ -346,6 +366,7 @@ export default function MangaReaderScreen() {
   }, []);
 
   const selectChapter = (chapter: MangaFireChapter) => {
+    selectedChapterRef.current = chapter;
     setSelectedChapter(chapter);
     setLoadingReader(true);
     setProgress(0);
@@ -400,7 +421,36 @@ export default function MangaReaderScreen() {
         message.type === "reader-progress" &&
         typeof message.progress === "number"
       ) {
-        setProgress(message.progress);
+        const p = message.progress;
+        setProgress(p);
+        const chapter = selectedChapterRef.current;
+        if (!chapter) return;
+
+        // Debounce: only write to storage 1s after scrolling stops
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(async () => {
+          try {
+            const STORAGE_KEY = '@dango/continue-watching-v1';
+            const raw = await AsyncStorage.getItem(STORAGE_KEY);
+            const items: ContinueItem[] = raw ? JSON.parse(raw) : [];
+            const id = `manga-${url}`;
+            const entry: ContinueItem = {
+              id,
+              type: 'manga',
+              mangaUrl: url,
+              title: saveDataRef.current.title,
+              posterUrl: saveDataRef.current.posterUri,
+              chapterId: chapter.id,
+              chapterTitle: chapter.title,
+              chapterNumber: chapter.number,
+              resumeProgress: p,
+              progress: p,
+              updatedAt: Date.now(),
+            };
+            const filtered = items.filter(i => i.id !== id);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([entry, ...filtered]));
+          } catch {}
+        }, 1000);
       }
     } catch {
       // Ignore messages from source scripts that are not part of the reader controller.
@@ -428,11 +478,12 @@ export default function MangaReaderScreen() {
             </TouchableOpacity>
 
             <View style={styles.titleRow}>
-              {details?.posterUrl || posterUrl ? (
+              {posterUri ? (
                 <Image
-                  // Force rerender when MangaFire details poster becomes available.
-                  key={details?.posterUrl ?? posterUrl}
-                  source={{ uri: details?.posterUrl || posterUrl }}
+                  source={{
+                    uri: posterUri,
+                    headers: { Referer: 'https://mangafire.to/' },
+                  }}
                   style={styles.cover}
                   contentFit="cover"
                 />
@@ -485,8 +536,8 @@ export default function MangaReaderScreen() {
                 domStorageEnabled
                 originWhitelist={["*"]}
                 mixedContentMode="always"
-                injectedJavaScriptBeforeContentLoaded={`${READER_CSS}\n${readerWidthScript(fitToWidth)}\n${READER_DISABLE_MANGAFIRE_NAV_SCRIPT}`}
-                injectedJavaScript={`${READER_CSS}\n${readerWidthScript(fitToWidth)}\n${READER_DISABLE_MANGAFIRE_NAV_SCRIPT}\n${READER_PROGRESS_SCRIPT}`}
+                injectedJavaScriptBeforeContentLoaded={`${READER_CSS}\n${readerWidthScript(fitToWidth)}`}
+                injectedJavaScript={`${READER_CSS}\n${readerWidthScript(fitToWidth)}\n${READER_PROGRESS_SCRIPT}`}
                 onLoadStart={() => setLoadingReader(true)}
                 onLoadEnd={() => {
                   setLoadingReader(false);
@@ -500,29 +551,16 @@ export default function MangaReaderScreen() {
                   const nextUrl = request.url ?? "";
 
                   // Always allow assets/scripts from the currently selected chapter page.
-                  if (
-                    selectedChapter?.url &&
-                    nextUrl &&
-                    nextUrl === selectedChapter.url
-                  ) {
+                  const currentChapterUrl = selectedChapterRef.current?.url ?? selectedChapter?.url;
+                  if (currentChapterUrl && nextUrl && nextUrl === currentChapterUrl) {
                     return true;
                   }
 
-                  // If the user taps Mangafire next/prev and it tries to navigate
-                  // to one of *our known chapter URLs*, sync React state to that
-                  // chapter and block the WebView reload.
-                  if (details?.chapters?.length) {
-                    const matchedChapter = details.chapters.find(
-                      (ch) => ch.url === nextUrl,
-                    );
-                    if (matchedChapter) {
-                      selectChapter(matchedChapter);
-                      return false;
-                    }
-                  }
-
-                  // Fallback: block chapter-navigation-like URLs.
-                  if (isMangaFireChapterNavUrl(nextUrl)) {
+                  // Block all chapter navigation — handled by our own controls.
+                  if (
+                    details?.chapters?.some((ch) => ch.url === nextUrl) ||
+                    isMangaFireChapterNavUrl(nextUrl)
+                  ) {
                     return false;
                   }
 

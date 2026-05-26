@@ -8,6 +8,7 @@ import {
 } from "@/hooks/use-tmdb";
 import { MangaFireItem } from "@/lib/mangafire";
 import {
+  backdropUrl,
   formatRating,
   GENRE_MAP,
   getTitle,
@@ -30,15 +31,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CATEGORIES = [
-  { id: "kdrama", label: "K-Drama", color: "#1a0a2e", accent: "#9b59b6" },
-  { id: "movies", label: "Movies", color: "#0a1a2e", accent: "#3498db" },
-  { id: "series", label: "Series", color: "#0a2e1a", accent: "#27ae60" },
-  { id: "action", label: "Action", color: "#2e1a1a", accent: "#f44336" },
-  { id: "romance", label: "Romance", color: "#2e0a1a", accent: "#e91e63" },
-  { id: "thriller", label: "Thriller", color: "#1a2e0a", accent: "#8bc34a" },
-  { id: "horror", label: "Horror", color: "#1a1a0a", accent: "#ff6f00" },
-  { id: "comedy", label: "Comedy", color: "#1a2e2e", accent: "#00bcd4" },
+const BROWSE_CATEGORIES = [
+  { id: "kdrama",   label: "K-Drama",  color: "#1a0a2e", accent: "#9b59b6", dataKey: "kdrama" },
+  { id: "movies",   label: "Movies",   color: "#0a1a2e", accent: "#3498db", dataKey: "movies" },
+  { id: "series",   label: "Series",   color: "#0a2e1a", accent: "#27ae60", dataKey: "series" },
+  { id: "action",   label: "Action",   color: "#2e1a1a", accent: "#f44336", dataKey: "movies" },
+  { id: "romance",  label: "Romance",  color: "#2e0a1a", accent: "#e91e63", dataKey: "kdrama" },
+  { id: "thriller", label: "Thriller", color: "#1a2e0a", accent: "#8bc34a", dataKey: "series" },
+  { id: "horror",   label: "Horror",   color: "#1a1a0a", accent: "#ff6f00", dataKey: "movies" },
+  { id: "comedy",   label: "Comedy",   color: "#1a2e2e", accent: "#00bcd4", dataKey: "series" },
+];
+
+type SearchCategory = "all" | "movies" | "series" | "anime" | "manga";
+const SEARCH_CATEGORIES: { key: SearchCategory; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "movies", label: "Movies" },
+  { key: "series", label: "Series" },
+  { key: "anime", label: "Anime" },
+  { key: "manga", label: "Manga" },
 ];
 
 function ResultRow({ item, onPress }: { item: TMDBItem; onPress: () => void }) {
@@ -128,15 +138,61 @@ function MangaResultRow({
   );
 }
 
+function SearchCategoryBar({
+  active,
+  onChange,
+}: {
+  active: SearchCategory;
+  onChange: (c: SearchCategory) => void;
+}) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.catBar}
+      contentContainerStyle={styles.catBarContent}
+    >
+      {SEARCH_CATEGORIES.map((c) => (
+        <TouchableOpacity
+          key={c.key}
+          onPress={() => onChange(c.key)}
+          style={styles.catBarItem}
+        >
+          <Text
+            style={[
+              styles.catBarLabel,
+              active === c.key && styles.catBarLabelActive,
+            ]}
+          >
+            {c.label}
+          </Text>
+          {active === c.key && <View style={styles.catBarUnderline} />}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [searchCategory, setSearchCategory] = useState<SearchCategory>("all");
 
   const searchResults = useSearch(query);
   const mangaResults = useMangaFireSearch(query);
   const kdramas = useKDramas();
   const movies = usePopularMovies();
   const tv = usePopularTV();
+
+  // Build a backdrop per category, cycling through the relevant pool
+  const catPosters = BROWSE_CATEGORIES.map((cat, i) => {
+    const pool =
+      cat.dataKey === 'movies' ? movies.data?.results :
+      cat.dataKey === 'kdrama' ? kdramas.data?.results :
+      tv.data?.results;
+    const item = pool?.[i % (pool?.length || 1)];
+    return backdropUrl(item?.backdrop_path ?? null, 'w780');
+  });
 
   // Trending tags derived from popular data
   const trendingTags = [
@@ -208,6 +264,12 @@ export default function SearchScreen() {
     (item) => !isKDrama(item) && !isAnime(item),
   );
 
+  // Filtered results based on selected search category
+  const filteredMovies = searchCategory === "all" || searchCategory === "movies" ? movieResults : [];
+  const filteredSeries = searchCategory === "all" || searchCategory === "series" ? [...kdramaResults, ...seriesResults] : [];
+  const filteredAnime = searchCategory === "all" || searchCategory === "anime" ? animeResults : [];
+  const filteredManga = searchCategory === "all" || searchCategory === "manga" ? mangaResults.data : [];
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* ── Header ── */}
@@ -259,85 +321,96 @@ export default function SearchScreen() {
               </Text>
             </View>
           ) : (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.resultsList}
-            >
-              {/* Movies */}
-              {movieResults.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>Movies</Text>
-                  {movieResults.map((item) => (
-                    <ResultRow
-                      key={`movie-${item.id}`}
-                      item={item}
-                      onPress={() => handlePress(item)}
-                    />
-                  ))}
-                  <View style={{ height: Spacing.md }} />
-                </>
-              )}
+            <>
+              <SearchCategoryBar
+                active={searchCategory}
+                onChange={setSearchCategory}
+              />
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.resultsList}
+              >
+                {/* Movies */}
+                {filteredMovies.length > 0 && (
+                  <>
+                    {searchCategory === "all" && (
+                      <Text style={styles.sectionTitle}>Movies</Text>
+                    )}
+                    {filteredMovies.map((item) => (
+                      <ResultRow
+                        key={`movie-${item.id}`}
+                        item={item}
+                        onPress={() => handlePress(item)}
+                      />
+                    ))}
+                  </>
+                )}
 
-              {/* K-Drama */}
-              {kdramaResults.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>K-Drama</Text>
-                  {kdramaResults.map((item) => (
-                    <ResultRow
-                      key={`kdrama-${item.id}`}
-                      item={item}
-                      onPress={() => handlePress(item)}
-                    />
-                  ))}
-                  <View style={{ height: Spacing.md }} />
-                </>
-              )}
+                {/* Series (includes K-Drama when in "all" or "series") */}
+                {filteredSeries.length > 0 && (
+                  <>
+                    {searchCategory === "all" && (
+                      <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Series & K-Drama</Text>
+                    )}
+                    {filteredSeries.map((item) => (
+                      <ResultRow
+                        key={`series-${item.id}`}
+                        item={item}
+                        onPress={() => handlePress(item)}
+                      />
+                    ))}
+                  </>
+                )}
 
-              {/* Anime */}
-              {animeResults.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>Anime</Text>
-                  {animeResults.map((item) => (
-                    <ResultRow
-                      key={`anime-${item.id}`}
-                      item={item}
-                      onPress={() => handlePress(item)}
-                    />
-                  ))}
-                  <View style={{ height: Spacing.md }} />
-                </>
-              )}
+                {/* Anime */}
+                {filteredAnime.length > 0 && (
+                  <>
+                    {searchCategory === "all" && (
+                      <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Anime</Text>
+                    )}
+                    {filteredAnime.map((item) => (
+                      <ResultRow
+                        key={`anime-${item.id}`}
+                        item={item}
+                        onPress={() => handlePress(item)}
+                      />
+                    ))}
+                  </>
+                )}
 
-              {/* Series */}
-              {seriesResults.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>Series</Text>
-                  {seriesResults.map((item) => (
-                    <ResultRow
-                      key={`series-${item.id}`}
-                      item={item}
-                      onPress={() => handlePress(item)}
-                    />
-                  ))}
-                  <View style={{ height: Spacing.md }} />
-                </>
-              )}
+                {/* Manga */}
+                {filteredManga.length > 0 && (
+                  <>
+                    {searchCategory === "all" && (
+                      <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Manga</Text>
+                    )}
+                    {filteredManga.map((item) => (
+                      <MangaResultRow
+                        key={`manga-${item.id}`}
+                        item={item}
+                        onPress={() => handleMangaPress(item)}
+                      />
+                    ))}
+                  </>
+                )}
 
-              {/* Manga */}
-              {mangaResults.data.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>Manga</Text>
-                  {mangaResults.data.map((item) => (
-                    <MangaResultRow
-                      key={`manga-${item.id}`}
-                      item={item}
-                      onPress={() => handleMangaPress(item)}
-                    />
-                  ))}
-                  <View style={{ height: Spacing.xxl }} />
-                </>
-              )}
-            </ScrollView>
+                <View style={{ height: Spacing.xxl }} />
+
+                {/* Empty state for active category filter */}
+                {searchCategory !== "all" &&
+                  filteredMovies.length === 0 &&
+                  filteredSeries.length === 0 &&
+                  filteredAnime.length === 0 &&
+                  filteredManga.length === 0 && (
+                    <View style={styles.emptySearch}>
+                      <Ionicons name="search-outline" size={48} color={Colors.hint} />
+                      <Text style={styles.emptyText}>
+                        No {SEARCH_CATEGORIES.find(c => c.key === searchCategory)?.label} results for &quot;{query}&quot;
+                      </Text>
+                    </View>
+                  )}
+              </ScrollView>
+            </>
           )}
         </View>
       ) : (
@@ -369,13 +442,22 @@ export default function SearchScreen() {
             Categories
           </Text>
           <View style={styles.catGrid}>
-            {CATEGORIES.map((cat) => (
+            {BROWSE_CATEGORIES.map((cat, i) => (
               <TouchableOpacity
                 key={cat.id}
                 style={[styles.catCard, { backgroundColor: cat.color }]}
                 activeOpacity={0.8}
                 onPress={() => setQuery(cat.label)}
               >
+                {catPosters[i] ? (
+                  <Image
+                    source={{ uri: catPosters[i]! }}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                ) : null}
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
                 <View
                   style={[styles.catAccentBar, { backgroundColor: cat.accent }]}
                 />
@@ -452,7 +534,7 @@ const styles = StyleSheet.create({
 
   // Results
   resultsContainer: { flex: 1 },
-  resultsList: { paddingHorizontal: Spacing.lg },
+  resultsList: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
   resultItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -501,12 +583,29 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
 
+  // Category bar (search mode)
+  catBar: { backgroundColor: Colors.background, paddingVertical: Spacing.sm },
+  catBarContent: { paddingHorizontal: Spacing.lg, gap: Spacing.xl },
+  catBarItem: { alignItems: "center", paddingBottom: 4 },
+  catBarLabel: { ...TextStyles.titleMedium, color: Colors.secondaryText },
+  catBarLabelActive: { color: Colors.primaryText },
+  catBarUnderline: {
+    height: 2,
+    width: "100%",
+    backgroundColor: Colors.primary,
+    marginTop: 3,
+    borderRadius: 1,
+  },
+
   // Browse
   scroll: { paddingHorizontal: Spacing.lg },
   sectionTitle: {
     ...TextStyles.titleMedium,
     color: Colors.primaryText,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  sectionTitleSpaced: {
+    marginTop: Spacing.lg,
   },
   tagsWrap: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
   tag: {

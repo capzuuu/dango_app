@@ -4,7 +4,6 @@
 - [ ] Create a new `dango-api` project
 - [ ] Set up Express.js with CORS
 - [ ] Create TMDB proxy endpoint (so API key is never in the APK)
-- [ ] Add rate limiting to prevent abuse
 - [ ] Deploy to Vercel
 - [ ] Add `TMDB_ACCESS_TOKEN` to Vercel environment variables
 - [ ] Update Dango app `.env` to point to the Vercel backend URL

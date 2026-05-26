@@ -36,15 +36,15 @@ function MiniPosterCard({ item, onPress }: { item: ListItem; onPress: () => void
 // ─── Settings data ────────────────────────────────────────────────────────────
 
 const ACCOUNT_TILES = [
-  { icon: 'person-outline',       label: 'Personal Information', sub: 'Email, phone, and name' },
-  { icon: 'lock-closed-outline',  label: 'Password & Security',  sub: 'Two-factor authentication' },
-  { icon: 'card-outline',         label: 'Payment Methods',      sub: 'Visa •••• 4242', last: true },
+  { icon: 'person-outline', label: 'Personal Information', sub: 'Email, phone, and name' },
+  { icon: 'lock-closed-outline', label: 'Password & Security', sub: 'Two-factor authentication' },
+  { icon: 'card-outline', label: 'Payment Methods', sub: 'Visa •••• 4242', last: true },
 ];
 
 const SUPPORT_TILES = [
-  { icon: 'help-circle-outline',         label: 'Help Center',     sub: null },
-  { icon: 'document-text-outline',       label: 'Terms of Service', sub: null },
-  { icon: 'information-circle-outline',  label: 'About Dango',     sub: null, last: true },
+  { icon: 'help-circle-outline', label: 'Help Center', sub: null },
+  { icon: 'document-text-outline', label: 'Terms of Service', sub: null },
+  { icon: 'information-circle-outline', label: 'About Dango', sub: null, last: true },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ export default function ProfileScreen() {
           <View style={styles.myListHeader}>
             <Text style={styles.groupTitle}>MY LIST</Text>
             {myListItems.length > 0 && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/my-list')}>
+              <TouchableOpacity onPress={() => router.push('/my-list-full')}>
                 <Text style={styles.seeAllText}>See All ({myListItems.length})</Text>
               </TouchableOpacity>
             )}
@@ -226,7 +226,7 @@ export default function ProfileScreen() {
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>Dango v2.4.0 · © 2026</Text>
+        <Text style={styles.versionText}>Dango v1.0.0 · © 2026</Text>
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
     </SafeAreaView>

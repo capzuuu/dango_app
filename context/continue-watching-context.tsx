@@ -51,6 +51,7 @@ interface ContinueWatchingContextValue {
     mangaUrl?: string;
     chapterId?: string;
   }) => void;
+  refresh: () => Promise<void>;
 }
 
 const ContinueWatchingContext = createContext<
@@ -65,21 +66,18 @@ export function ContinueWatchingProvider({
   const [items, setItems] = useState<ContinueItem[]>([]);
   const hydrated = useRef(false);
 
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw) as ContinueItem[];
-            if (Array.isArray(parsed)) setItems(parsed);
-          } catch {}
-        }
-        hydrated.current = true;
-      })
-      .catch(() => {
-        hydrated.current = true;
-      });
+  const loadFromStorage = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ContinueItem[];
+        if (Array.isArray(parsed)) setItems(parsed);
+      }
+    } catch {}
+    hydrated.current = true;
   }, []);
+
+  useEffect(() => { loadFromStorage(); }, [loadFromStorage]);
 
   useEffect(() => {
     if (!hydrated.current) return;
@@ -89,7 +87,7 @@ export function ContinueWatchingProvider({
   const upsert = useCallback((item: Omit<ContinueItem, "id" | "updatedAt">) => {
     const id =
       item.type === "manga"
-        ? `manga-${item.mangaUrl}-${item.chapterId ?? ""}`
+        ? `manga-${item.mangaUrl}`
         : `tmdb-${item.tmdbId}-${item.type}`;
 
     setItems((prev) => {
@@ -106,7 +104,7 @@ export function ContinueWatchingProvider({
       chapterId?: string;
     }) => {
       if (key.type === "manga") {
-        const id = `manga-${key.mangaUrl}-${key.chapterId ?? ""}`;
+        const id = `manga-${key.mangaUrl}`;
         setItems((prev) => prev.filter((i) => i.id !== id));
         return;
       }
@@ -117,7 +115,7 @@ export function ContinueWatchingProvider({
   );
 
   return (
-    <ContinueWatchingContext.Provider value={{ items, upsert, remove }}>
+    <ContinueWatchingContext.Provider value={{ items, upsert, remove, refresh: loadFromStorage }}>
       {children}
     </ContinueWatchingContext.Provider>
   );
