@@ -3,12 +3,12 @@ import { Colors, Radii, Spacing, TextStyles } from '@/constants/theme';
 import { ListItem, resolveCategory, useMyList } from '@/context/my-list-context';
 import { useMovieDetail, useSeasonEpisodes, useShowDetail } from '@/hooks/use-tmdb';
 import {
-    backdropUrl,
-    formatRating,
-    posterUrl,
-    TMDBEpisode,
-    TMDBMovieDetail,
-    TMDBShowDetail,
+  backdropUrl,
+  formatRating,
+  posterUrl,
+  TMDBEpisode,
+  TMDBMovieDetail,
+  TMDBShowDetail,
 } from '@/lib/tmdb';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -16,15 +16,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -158,30 +158,30 @@ export default function DetailsScreen() {
   const isMovie = type !== 'tv';
 
   const movieDetail = useMovieDetail(isMovie ? numId : 0);
-  const showDetail  = useShowDetail(!isMovie ? numId : 0);
+  const showDetail = useShowDetail(!isMovie ? numId : 0);
   const episodesData = useSeasonEpisodes(!isMovie ? numId : 0, selectedSeason);
 
   const detail: TMDBMovieDetail | TMDBShowDetail | null = isMovie
     ? movieDetail.data
     : showDetail.data;
   const loading = isMovie ? movieDetail.loading : showDetail.loading;
-  const error   = isMovie ? movieDetail.error   : showDetail.error;
+  const error = isMovie ? movieDetail.error : showDetail.error;
 
-  const title    = detail ? ((detail as TMDBMovieDetail).title ?? (detail as TMDBShowDetail).name ?? '') : '';
+  const title = detail ? ((detail as TMDBMovieDetail).title ?? (detail as TMDBShowDetail).name ?? '') : '';
   const overview = detail?.overview ?? '';
   const backdrop = backdropUrl(detail?.backdrop_path ?? null, 'w1280');
-  const rating   = detail ? formatRating(detail.vote_average) : '';
-  const year     = detail
+  const rating = detail ? formatRating(detail.vote_average) : '';
+  const year = detail
     ? ((detail as TMDBMovieDetail).release_date ?? (detail as TMDBShowDetail).first_air_date ?? '').slice(0, 4)
     : '';
-  const genres   = detail?.genres?.map(g => g.name).join(', ') ?? '';
-  const cast     = detail?.credits?.cast?.slice(0, 4).map(c => c.name).join(', ') ?? '';
-  const creator  = isMovie
+  const genres = detail?.genres?.map(g => g.name).join(', ') ?? '';
+  const cast = detail?.credits?.cast?.slice(0, 4).map(c => c.name).join(', ') ?? '';
+  const creator = isMovie
     ? detail?.credits?.crew?.find(c => c.job === 'Director')?.name ?? ''
     : (detail as TMDBShowDetail)?.created_by?.[0]?.name ?? '';
 
-  const seasons  = !isMovie ? (detail as TMDBShowDetail)?.seasons?.filter(s => s.season_number > 0) ?? [] : [];
-  const runtime  = isMovie ? (detail as TMDBMovieDetail)?.runtime : null;
+  const seasons = !isMovie ? (detail as TMDBShowDetail)?.seasons?.filter(s => s.season_number > 0) ?? [] : [];
+  const runtime = isMovie ? (detail as TMDBMovieDetail)?.runtime : null;
 
   const similar = isMovie
     ? (detail as TMDBMovieDetail)?.similar?.results ?? []
@@ -382,7 +382,7 @@ export default function DetailsScreen() {
           </View>
         ) : error ? (
           <View style={styles.infoSection}>
-            <Text style={styles.errorText}>Failed to load. Check your TMDB API token.</Text>
+            <Text style={styles.errorText}>Failed to load: {error}</Text>
           </View>
         ) : (
           <View style={styles.infoSection}>
@@ -410,7 +410,8 @@ export default function DetailsScreen() {
                 style={styles.playBtn}
                 onPress={() => router.push({
                   pathname: '/player',
-                  params: { id, type, season: '1', episode: '1', title,
+                  params: {
+                    id, type, season: '1', episode: '1', title,
                     posterPath: detail?.poster_path ?? '',
                     backdropPath: detail?.backdrop_path ?? '',
                   },

@@ -1,23 +1,19 @@
 /**
- * TMDB API v3 client
+ * TMDB API v3 client via backend proxy
  * Docs: https://developer.themoviedb.org/reference/intro/getting-started
  *
- * Set EXPO_PUBLIC_TMDB_ACCESS_TOKEN in your .env file.
- * Get a free token at: https://www.themoviedb.org/settings/api
+ * The backend (server/) handles the TMDB API key securely.
+ * This frontend only calls the local backend proxy.
  */
 
-const BASE_URL = process.env.EXPO_PUBLIC_DANGO_API_BASE_URL ?? '';
+const BASE_URL = process.env.EXPO_PUBLIC_TMDB_BACKEND_URL ?? 'http://localhost:3000/api/tmdb';
 const IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
-const SECRET_HEADER_NAME = process.env.EXPO_PUBLIC_DANGO_API_SECRET_HEADER_NAME ?? 'x-dango-secret';
-const SECRET_HEADER_VALUE = process.env.EXPO_PUBLIC_DANGO_API_SECRET ?? '';
-
-if (!BASE_URL) {
-  console.warn('[dango-api] EXPO_PUBLIC_DANGO_API_BASE_URL is not set.');
-}
-
-if (!SECRET_HEADER_VALUE) {
-  console.warn('[dango-api] EXPO_PUBLIC_DANGO_API_SECRET is not set.');
+if (!BASE_URL || BASE_URL === 'http://localhost:3000/api/tmdb') {
+  console.warn(
+    '[TMDB] Make sure your backend server is running on http://localhost:3000',
+    'or set EXPO_PUBLIC_TMDB_BACKEND_URL in your .env file'
+  );
 }
 
 
@@ -133,23 +129,19 @@ async function tmdbFetch<T>(endpoint: string, params: Record<string, string> = {
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&');
 
-  // Our backend mirrors TMDB paths under /tmdb and returns TMDB JSON.
-  // Example: endpoint=/trending/all/week -> GET ${BASE_URL}/tmdb/trending/all/week
-  const url = `${BASE_URL}/tmdb${endpoint}${qs ? `?${qs}` : ''}`;
+  // Call backend proxy (no API key needed here - it's on the server)
+  const url = `${BASE_URL}${endpoint}${qs ? `?${qs}` : ''}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (SECRET_HEADER_VALUE) {
-    headers[SECRET_HEADER_NAME] = SECRET_HEADER_VALUE;
-  }
 
   const res = await fetch(url, { headers });
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    const msg = `dango-api TMDB proxy ${res.status}: ${res.statusText} — ${endpoint} — ${body}`;
-    console.error('[dango-api]', msg);
+    const msg = `Backend/TMDB API ${res.status}: ${res.statusText} — ${endpoint} — ${body}`;
+    console.error('[TMDB]', msg);
     throw new Error(msg);
   }
 
