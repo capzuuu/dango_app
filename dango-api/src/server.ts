@@ -1,6 +1,7 @@
 import cors from 'cors';
-import express from 'express';
+import 'dotenv/config';
 
+import express from 'express';
 import { env } from './env';
 import { rateLimitKV } from './middleware/rateLimitKV';
 import { secretHeaderGuard } from './middleware/secretHeaderGuard';
