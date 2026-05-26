@@ -37,8 +37,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="shortTv"
+        options={{
+          title: 'ShortTV',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="play-circle" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="my-list"
         options={{
+          href: null,
           title: 'My List',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bookmark" size={size} color={color} />

@@ -1,0 +1,8 @@
+- [ ] Update `context/continue-watching-context.tsx` to support manga progress (extend types + upsert/remove for manga)
+- [ ] Update `app/manga-reader.tsx` to:
+  - [ ] Accept `chapterId` + `resumeProgress` params and resume on load
+  - [ ] Persist manga progress to context while reading (throttle)
+- [ ] Update `app/(tabs)/index.tsx` home page manga “Continue reading” section to:
+  - [ ] Render manga continue items from context
+  - [ ] Navigate to `/manga-reader` with resume params
+- [ ] Manual testing: verify resume works + chapter/scroll restores + poster loads

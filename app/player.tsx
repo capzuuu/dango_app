@@ -215,10 +215,32 @@ export default function PlayerScreen() {
   const [currentSeason, setCurrentSeason] = useState(Number(season ?? 1));
   const [currentEp, setCurrentEp] = useState(Number(episode ?? 1));
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null);
+  const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasLoadedOnce = useRef(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const visibleRef = useRef(true);
+
+  const cancelAutoNext = () => {
+    if (autoNextTimer.current) { clearInterval(autoNextTimer.current); autoNextTimer.current = null; }
+    setAutoNextCountdown(null);
+  };
+
+  const startAutoNext = () => {
+    cancelAutoNext();
+    let count = 30;
+    setAutoNextCountdown(count);
+    autoNextTimer.current = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        cancelAutoNext();
+        setCurrentEp(prev => prev + 1);
+      } else {
+        setAutoNextCountdown(count);
+      }
+    }, 1000);
+  };
 
   const scheduleHide = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -250,7 +272,10 @@ export default function PlayerScreen() {
 
   useEffect(() => {
     scheduleHide();
-    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      if (autoNextTimer.current) clearInterval(autoNextTimer.current);
+    };
   }, []);
 
   // Show top bar whenever episode or season changes
@@ -286,7 +311,8 @@ export default function PlayerScreen() {
   const handleMessage = (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data?.type === 'tap') { toggleControls(); return; }
+      if (data?.type === 'tap') { cancelAutoNext(); toggleControls(); return; }
+      if (data?.type === 'episodeEnd' && type === 'tv') { startAutoNext(); return; }
       if (data?.season != null) setCurrentSeason(Number(data.season));
       if (data?.episode != null) setCurrentEp(Number(data.episode));
     } catch {
@@ -373,15 +399,38 @@ export default function PlayerScreen() {
       if (d && (d.season != null || d.episode != null)) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ season: d.season, episode: d.episode }));
       }
+      if (d && d.type === 'episodeEnd') {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'episodeEnd' }));
+      }
     } catch(err) {}
   });
+  // Detect 30s before end (before credits) and full end
+  function attachEnded(v) {
+    if (!v || v._endAttached) return; v._endAttached = true;
+    var fired = false;
+    v.addEventListener('timeupdate', function() {
+      if (fired || !v.duration || v.duration < 60) return;
+      var remaining = v.duration - v.currentTime;
+      if (remaining <= 120 && remaining > 0) {
+        fired = true;
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'episodeEnd' }));
+      }
+    });
+    v.addEventListener('ended', function() {
+      if (!fired) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'episodeEnd' }));
+      }
+    });
+  }
   // Forward taps to toggle native top bar
   document.addEventListener('click', function() {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'tap' }));
   }, true);
   // Force autoplay
   function tryPlay(v) {
-    if (!v || v._dp) return; v._dp = true; v.muted = false;
+    if (!v || v._dp) return; v._dp = true;
+    attachEnded(v);
+    v.muted = false;
     var p = v.play(); if (p && p.catch) p.catch(function() { v.muted = true; v.play().catch(function(){}); });
   }
   document.querySelectorAll('video').forEach(tryPlay);
@@ -426,6 +475,22 @@ export default function PlayerScreen() {
           </View>
         )}
       </View>
+
+      {/* ── Auto-next episode overlay ── */}
+      {autoNextCountdown !== null && type === 'tv' && (
+        <View style={styles.autoNextOverlay}>
+          <Text style={styles.autoNextText}>Next episode in {autoNextCountdown}s</Text>
+          <View style={styles.autoNextBtns}>
+            <TouchableOpacity style={styles.autoNextPlayBtn} onPress={() => { cancelAutoNext(); setCurrentEp(prev => prev + 1); }}>
+              <Ionicons name="play-skip-forward" size={16} color="#000" />
+              <Text style={styles.autoNextPlayText}>Play Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.autoNextCancelBtn} onPress={cancelAutoNext}>
+              <Text style={styles.autoNextCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* ── Top bar ── */}
       <Animated.View
@@ -515,6 +580,32 @@ const styles = StyleSheet.create({
   titleBlock: { flex: 1 },
   titleText: { ...TextStyles.titleSmall, color: Colors.primaryText },
   epText: { ...TextStyles.labelSmall, color: Colors.secondaryText },
+  autoNextOverlay: {
+    position: 'absolute',
+    bottom: 80, right: Spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    zIndex: 200,
+    elevation: 200,
+    minWidth: 200,
+  },
+  autoNextText: { ...TextStyles.bodyMedium, color: Colors.primaryText, textAlign: 'center' },
+  autoNextBtns: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center' },
+  autoNextPlayBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
+    backgroundColor: Colors.primaryText,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2,
+    borderRadius: Radii.sm,
+  },
+  autoNextPlayText: { color: '#000', fontWeight: '700', fontSize: 13 },
+  autoNextCancelBtn: {
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2,
+    borderRadius: Radii.sm,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  autoNextCancelText: { color: Colors.primaryText, fontSize: 13 },
   iconBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.1)',
