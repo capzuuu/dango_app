@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "functions": {
     "src/**/*.ts": {
-      "runtime": "nodejs20.x"
+      "runtime": "nodejs20"
     }
   },
   "routes": [
