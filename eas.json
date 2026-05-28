@@ -4,14 +4,20 @@
   },
   "build": {
     "preview": {
+      "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_TMDB_BACKEND_URL": "https://dango-app-iota.vercel.app/api/tmdb"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_TMDB_BACKEND_URL": "https://dango-app-iota.vercel.app/api/tmdb"
       }
     }
   },
