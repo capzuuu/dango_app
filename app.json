@@ -3,7 +3,7 @@
     "name": "Dango",
     "slug": "dango",
     "version": "1.0.0",
-    "owner": "your-expo-username",
+    "owner": "joemarrr",
     "extra": {
       "eas": {
         "projectId": "27ead3fc-6ca5-4cc7-a3ee-1c699f266078"
@@ -28,7 +28,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/dango-logo-web.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
